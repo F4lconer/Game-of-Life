@@ -1,0 +1,103 @@
+{
+  "presets": [
+    {
+      "name": "Glider",
+      "category": "Spaceships",
+      "meta": "c/4 diagonal · Guy 1970",
+      "description": "The smallest spaceship. Moves one cell diagonally every 4 generations.",
+      "rle": "bob$2bo$3o!"
+    },
+    {
+      "name": "Lightweight spaceship",
+      "category": "Spaceships",
+      "meta": "c/2 orthogonal · Conway 1970",
+      "description": "LWSS. Travels horizontally, two cells every 4 generations.",
+      "rle": "bo2bo$o4b$o3bo$4o!"
+    },
+    {
+      "name": "Middleweight spaceship",
+      "category": "Spaceships",
+      "meta": "c/2 orthogonal · Conway 1970",
+      "rle": "3bo2b$bo3bo$o5b$o4bo$5o!"
+    },
+    {
+      "name": "Heavyweight spaceship",
+      "category": "Spaceships",
+      "meta": "c/2 orthogonal · Conway 1970",
+      "rle": "3b2o2b$bo4bo$o6b$o5bo$6o!"
+    },
+    {
+      "name": "Gosper glider gun",
+      "category": "Guns",
+      "meta": "p30 · Gosper 1970",
+      "description": "The first known gun. Fires a new glider every 30 generations, forever.",
+      "featured": true,
+      "rle": "24bo$22bobo$12b2o6b2o12b2o$11bo3bo4b2o12b2o$2o8bo5bo3b2o$2o8bo3bob2o4bobo$10bo5bo7bo$11bo3bo$12b2o!"
+    },
+    {
+      "name": "Simkin glider gun",
+      "category": "Guns",
+      "meta": "p120 · Simkin 2015",
+      "description": "The smallest known gun by starting population (36 cells).",
+      "rle": "2o5b2o$2o5b2o2$4b2o$4b2o5$22b2ob2o$21bo5bo$21bo6bo2b2o$21b3o3bo3b2o$26bo4$20b2o$20bo$21b3o$23bo!"
+    },
+    {
+      "name": "Blinker",
+      "category": "Oscillators",
+      "meta": "p2",
+      "rle": "3o!"
+    },
+    {
+      "name": "Toad",
+      "category": "Oscillators",
+      "meta": "p2",
+      "rle": "b3o$3o!"
+    },
+    {
+      "name": "Beacon",
+      "category": "Oscillators",
+      "meta": "p2",
+      "rle": "2o2b$2o2b$2b2o$2b2o!"
+    },
+    {
+      "name": "Pulsar",
+      "category": "Oscillators",
+      "meta": "p3",
+      "rle": "2b3o3b3o2b2$o4bobo4bo$o4bobo4bo$o4bobo4bo$2b3o3b3o2b2$2b3o3b3o2b$o4bobo4bo$o4bobo4bo$o4bobo4bo2$2b3o3b3o!"
+    },
+    {
+      "name": "Pentadecathlon",
+      "category": "Oscillators",
+      "meta": "p15",
+      "rle": "2bo4bo2b$2ob4ob2o$2bo4bo!"
+    },
+    {
+      "name": "R-pentomino",
+      "category": "Methuselahs",
+      "meta": "stable at gen 1103",
+      "description": "Five cells that take 1103 generations to settle, ending with 116 cells and 6 gliders.",
+      "rle": "b2o$2o$bo!"
+    },
+    {
+      "name": "Acorn",
+      "category": "Methuselahs",
+      "meta": "stable at gen 5206",
+      "description": "Seven cells that grow to 633 and launch 13 gliders before settling.",
+      "rle": "bo5b$3bo3b$2o2b3o!"
+    },
+    {
+      "name": "Diehard",
+      "category": "Methuselahs",
+      "meta": "dies at gen 130",
+      "description": "Vanishes completely after 130 generations.",
+      "rle": "6bob$2o6b$bo3b3o!"
+    },
+    {
+      "name": "One-line grower",
+      "category": "Infinite growth",
+      "meta": "39 × 1",
+      "description": "A single row of cells whose population grows without limit.",
+      "rle": "8ob5o3b3o6b7ob5o!"
+    }
+  ]
+}

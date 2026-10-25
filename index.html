@@ -1,0 +1,627 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Life Field</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Conway's Game of Life on an unbounded field, with classic pattern presets.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Graph-paper lab notebook: sidebar library of specimens beside an unbounded ruled field */
+:root {
+  --bg: #e9eef1;
+  --panel: #f8fafb;
+  --field: #fbfcfd;
+  --ink: #15212b;
+  --muted: #5a6975;
+  --line: #d3dce2;
+  --grid: #e1e8ed;
+  --grid-major: #c6d3dc;
+  --cell: #1d48c4;
+  --accent: #1d48c4;
+  --accent-ink: #ffffff;
+  --accent-soft: #dce5fa;
+  --danger: #b4322a;
+  --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+  --radius: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d1217; --panel: #131a21; --field: #0f151b; --ink: #e4ebf0; --muted: #8796a2;
+    --line: #243039; --grid: #18212a; --grid-major: #24313c; --cell: #ffb444;
+    --accent: #ffb444; --accent-ink: #1c1306; --accent-soft: #2e2617; --danger: #ff7a6e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d1217; --panel: #131a21; --field: #0f151b; --ink: #e4ebf0; --muted: #8796a2;
+  --line: #243039; --grid: #18212a; --grid-major: #24313c; --cell: #ffb444;
+  --accent: #ffb444; --accent-ink: #1c1306; --accent-soft: #2e2617; --danger: #ff7a6e;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 var(--f-body); }
+*, *::before, *::after { box-sizing: border-box; }
+button, input, textarea { font: inherit; color: inherit; }
+
+.app {
+  height: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-areas: "head head" "tools lib" "stage lib";
+}
+
+.head {
+  grid-area: head;
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 24px;
+  padding-block: 12px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+}
+.brand { display: flex; align-items: baseline; gap: 10px; }
+.brand h1 { margin: 0; font: 700 22px/1 var(--f-display); letter-spacing: -0.01em; }
+.rule { font: 500 12px/1 var(--f-mono); color: var(--muted); padding: 3px 6px; border: 1px solid var(--line); border-radius: 4px; }
+.stats { display: flex; gap: 20px; margin: 0 0 0 auto; }
+.stats div { display: flex; flex-direction: column; }
+.stats dt { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.stats dd { margin: 0; font: 500 16px/1.2 var(--f-mono); font-variant-numeric: tabular-nums; min-width: 6ch; }
+
+.tools {
+  grid-area: tools;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  padding-block: 10px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: 16px;
+  border-bottom: 1px solid var(--line);
+}
+.sep { width: 1px; align-self: stretch; background: var(--line); margin: 0 4px; }
+.btn {
+  height: 34px; padding: 0 12px; border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--panel); cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+  font-weight: 500;
+}
+.btn:hover { border-color: var(--muted); }
+.btn:focus-visible, .seg button:focus-visible, .preset:focus-visible, input:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); min-width: 84px; justify-content: center; }
+.btn kbd { font: 11px var(--f-mono); color: var(--muted); }
+.btn.primary kbd { color: inherit; opacity: 0.75; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.seg button { height: 32px; padding: 0 12px; border: 0; background: var(--panel); cursor: pointer; font-weight: 500; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); }
+.speed { display: inline-flex; align-items: center; gap: 8px; }
+.speed input { width: 110px; accent-color: var(--accent); }
+.speed output { font: 12px var(--f-mono); color: var(--muted); min-width: 8ch; font-variant-numeric: tabular-nums; }
+
+.stage { grid-area: stage; position: relative; min-height: 0; background: var(--field); }
+canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+canvas.draw { cursor: crosshair; }
+canvas.dragging { cursor: grabbing; }
+.hint {
+  position: absolute; left: max(12px, env(safe-area-inset-left, 0px)); bottom: 12px; margin: 0;
+  font: 12px var(--f-mono); color: var(--muted); background: var(--panel);
+  border: 1px solid var(--line); border-radius: 4px; padding: 4px 8px; pointer-events: none;
+  max-width: calc(100% - 24px);
+}
+
+.lib {
+  grid-area: lib; min-height: 0; display: flex; flex-direction: column;
+  border-left: 1px solid var(--line); background: var(--panel);
+}
+.lib-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 16px; padding-right: max(16px, env(safe-area-inset-right, 0px)); border-bottom: 1px solid var(--line); }
+.lib-head h2 { margin: 0; font: 600 15px/1 var(--f-display); }
+.lib-actions { display: flex; gap: 6px; }
+.lib-actions .btn { height: 28px; padding: 0 8px; font-size: 12px; }
+.list { overflow-y: auto; padding: 4px 0 16px; }
+.cat { margin: 14px 16px 4px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.preset {
+  display: grid; gap: 2px; width: 100%; text-align: left; border: 0; background: none; cursor: pointer;
+  padding: 7px 16px; padding-right: max(16px, env(safe-area-inset-right, 0px)); border-left: 3px solid transparent;
+}
+.preset:hover { background: var(--bg); }
+.preset[aria-current="true"] { border-left-color: var(--accent); background: var(--accent-soft); }
+.preset .name { font-weight: 600; }
+.preset .meta { font: 12px var(--f-mono); color: var(--muted); }
+.preset .desc { font-size: 12.5px; color: var(--muted); }
+.list .error { margin: 16px; color: var(--danger); font-size: 13px; }
+
+.rle {
+  border-top: 1px solid var(--line); padding: 12px 16px; display: grid; gap: 8px;
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.rle label { font-weight: 600; font-size: 13px; }
+.rle textarea { width: 100%; min-height: 110px; resize: vertical; font: 12px/1.4 var(--f-mono); padding: 8px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--field); }
+.rle .row { display: flex; gap: 6px; flex-wrap: wrap; }
+.rle .msg { margin: 0; font-size: 12px; color: var(--muted); min-height: 1em; }
+.rle .msg.err { color: var(--danger); }
+
+@media (max-width: 760px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(280px, 1fr) minmax(0, 38%);
+    grid-template-areas: "head" "tools" "stage" "lib";
+  }
+  .lib { border-left: 0; border-top: 1px solid var(--line); }
+  .stats { margin-left: 0; gap: 16px; }
+  .hint { display: none; }
+  .speed input { width: 90px; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+<div class="app">
+  <header class="head">
+    <div class="brand"><h1>Life Field</h1><span class="rule" title="Born with 3 neighbours, survives with 2 or 3">B3/S23</span></div>
+    <dl class="stats">
+      <div><dt>Generation</dt><dd id="gen">0</dd></div>
+      <div><dt>Population</dt><dd id="pop">0</dd></div>
+      <div><dt>Zoom</dt><dd id="zoom">1×</dd></div>
+    </dl>
+  </header>
+
+  <div class="tools">
+    <button class="btn primary" id="play" type="button">Play <kbd>Space</kbd></button>
+    <button class="btn" id="step" type="button">Step <kbd>N</kbd></button>
+    <label class="speed" for="speed">Speed <input id="speed" type="range" min="1" max="60" value="15"><output id="speedOut">15 gen/s</output></label>
+    <span class="sep" aria-hidden="true"></span>
+    <div class="seg" role="group" aria-label="Pointer tool">
+      <button type="button" id="toolPan" aria-pressed="true">Pan</button>
+      <button type="button" id="toolDraw" aria-pressed="false">Draw</button>
+    </div>
+    <button class="btn" id="fit" type="button">Fit <kbd>F</kbd></button>
+    <button class="btn" id="grid" type="button" aria-pressed="true">Grid <kbd>G</kbd></button>
+    <span class="sep" aria-hidden="true"></span>
+    <button class="btn" id="random" type="button">Random</button>
+    <button class="btn" id="clear" type="button">Clear</button>
+  </div>
+
+  <main class="stage">
+    <canvas id="field" aria-label="Game of Life field"></canvas>
+    <p class="hint">Drag to pan · Scroll to zoom · Click to toggle a cell</p>
+  </main>
+
+  <aside class="lib">
+    <div class="lib-head">
+      <h2>Patterns</h2>
+      <div class="lib-actions">
+        <button class="btn" id="openImport" type="button">Paste RLE</button>
+        <button class="btn" id="openExport" type="button">Export</button>
+      </div>
+    </div>
+    <div class="list" id="list"></div>
+    <div class="rle" id="rlePanel" hidden>
+      <label for="rleText" id="rleLabel">Paste RLE</label>
+      <textarea id="rleText" spellcheck="false" placeholder="x = 3, y = 3, rule = B3/S23&#10;bob$2bo$3o!"></textarea>
+      <div class="row">
+        <button class="btn primary" id="rleLoad" type="button">Load</button>
+        <button class="btn" id="rleCopy" type="button">Copy</button>
+        <button class="btn" id="rleClose" type="button">Close</button>
+      </div>
+      <p class="msg" id="rleMsg" aria-live="polite"></p>
+    </div>
+  </aside>
+</div>
+
+<script id="engine">
+const OFF = 1 << 20, SPAN = 1 << 21;
+const key = (x, y) => (x + OFF) * SPAN + (y + OFF);
+const kx = k => Math.floor(k / SPAN) - OFF;
+const ky = k => (k % SPAN) - OFF;
+const NB = [-SPAN - 1, -SPAN, -SPAN + 1, -1, 1, SPAN - 1, SPAN, SPAN + 1];
+
+class Life {
+  constructor() { this.cells = new Set(); this.gen = 0; }
+  has(x, y) { return this.cells.has(key(x, y)); }
+  set(x, y, on) { const k = key(x, y); on ? this.cells.add(k) : this.cells.delete(k); }
+  toggle(x, y) { this.set(x, y, !this.has(x, y)); }
+  clear() { this.cells = new Set(); this.gen = 0; }
+  load(list, ox = 0, oy = 0) { this.clear(); for (const [x, y] of list) this.cells.add(key(x + ox, y + oy)); }
+  step() {
+    const counts = new Map();
+    for (const k of this.cells) for (const d of NB) { const n = k + d; counts.set(n, (counts.get(n) || 0) + 1); }
+    const next = new Set();
+    for (const [k, n] of counts) if (n === 3 || (n === 2 && this.cells.has(k))) next.add(k);
+    this.cells = next;
+    this.gen++;
+  }
+  list() { return [...this.cells].map(k => [kx(k), ky(k)]); }
+  bounds() {
+    if (!this.cells.size) return null;
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const k of this.cells) { const x = kx(k), y = ky(k); if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    return { x0, y0, x1, y1 };
+  }
+}
+
+function parseRLE(text) {
+  const cells = [];
+  const body = text.split(/\r?\n/).filter(l => !/^\s*#/.test(l) && !/^\s*x\s*=/.test(l)).join("");
+  let x = 0, y = 0, num = "";
+  for (const ch of body) {
+    if (/\s/.test(ch)) continue;
+    if (ch >= "0" && ch <= "9") { num += ch; continue; }
+    const n = num ? parseInt(num, 10) : 1;
+    num = "";
+    if (ch === "!") break;
+    if (ch === "$") { y += n; x = 0; }
+    else if (ch === "b" || ch === ".") x += n;
+    else if (/[a-zA-Z]/.test(ch)) { for (let i = 0; i < n; i++) cells.push([x + i, y]); x += n; }
+  }
+  return cells;
+}
+
+function parsePlain(rows) {
+  const cells = [];
+  rows.forEach((row, y) => [...row].forEach((c, x) => { if (c === "O" || c === "*" || c === "o") cells.push([x, y]); }));
+  return cells;
+}
+
+function toRLE(list, name = "Exported") {
+  if (!list.length) return `#N ${name}\nx = 0, y = 0, rule = B3/S23\n!`;
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  const rows = new Map();
+  for (const [x, y] of list) {
+    x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
+    if (!rows.has(y)) rows.set(y, []);
+    rows.get(y).push(x);
+  }
+  const run = (n, c) => (n > 1 ? n : "") + c;
+  let body = "", gap = 0;
+  for (let y = y0; y <= y1; y++) {
+    const xs = (rows.get(y) || []).sort((a, b) => a - b);
+    if (y > y0) gap++;
+    if (!xs.length) continue;
+    let s = "", cx = x0, i = 0;
+    while (i < xs.length) {
+      let j = i;
+      while (j + 1 < xs.length && xs[j + 1] === xs[j] + 1) j++;
+      if (xs[i] > cx) s += run(xs[i] - cx, "b");
+      s += run(j - i + 1, "o");
+      cx = xs[j] + 1;
+      i = j + 1;
+    }
+    body += (gap ? run(gap, "$") : "") + s;
+    gap = 0;
+  }
+  body += "!";
+  const lines = [];
+  for (let i = 0; i < body.length; i += 70) lines.push(body.slice(i, i + 70));
+  return `#N ${name}\nx = ${x1 - x0 + 1}, y = ${y1 - y0 + 1}, rule = B3/S23\n${lines.join("\n")}`;
+}
+
+function presetCells(p) {
+  if (p.rle) return parseRLE(p.rle);
+  if (Array.isArray(p.cells)) return parsePlain(p.cells);
+  return [];
+}
+
+if (typeof module !== "undefined") module.exports = { Life, parseRLE, parsePlain, toRLE, presetCells };
+</script>
+
+<script>
+const $ = id => document.getElementById(id);
+const canvas = $("field"), ctx = canvas.getContext("2d");
+const life = new Life();
+const cam = { x: 0, y: 0, scale: 10 };
+let running = false, showGrid = true, tool = "pan", dirty = true, gps = 15, acc = 0, lastT = 0;
+let presets = [], current = null, colors = {};
+
+function readColors() {
+  const cs = getComputedStyle(document.documentElement);
+  for (const n of ["field", "grid", "grid-major", "cell"]) colors[n] = cs.getPropertyValue("--" + n).trim();
+  dirty = true;
+}
+readColors();
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", readColors);
+new MutationObserver(readColors).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+let W = 0, H = 0, dpr = 1;
+function resize() {
+  const r = canvas.getBoundingClientRect();
+  const first = !W && r.width > 0;
+  dpr = window.devicePixelRatio || 1;
+  W = r.width; H = r.height;
+  canvas.width = Math.round(W * dpr);
+  canvas.height = Math.round(H * dpr);
+  dirty = true;
+  if (first) fit();
+}
+new ResizeObserver(resize).observe(canvas);
+
+const clampScale = s => Math.min(64, Math.max(0.5, s));
+const toWorld = (px, py) => ({ x: cam.x + (px - W / 2) / cam.scale, y: cam.y + (py - H / 2) / cam.scale });
+const cellAt = (px, py) => { const w = toWorld(px, py); return [Math.floor(w.x), Math.floor(w.y)]; };
+
+function zoomAt(px, py, f) {
+  const before = toWorld(px, py);
+  cam.scale = clampScale(cam.scale * f);
+  cam.x = before.x - (px - W / 2) / cam.scale;
+  cam.y = before.y - (py - H / 2) / cam.scale;
+  dirty = true;
+}
+
+function fit() {
+  const b = life.bounds();
+  if (!b || !W) { cam.x = 0; cam.y = 0; dirty = true; return; }
+  const bw = b.x1 - b.x0 + 1, bh = b.y1 - b.y0 + 1;
+  cam.scale = clampScale(Math.min(W / (bw + 8), H / (bh + 8), 28));
+  cam.x = b.x0 + bw / 2;
+  cam.y = b.y0 + bh / 2;
+  dirty = true;
+}
+
+function draw() {
+  const s = cam.scale;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.fillStyle = colors.field;
+  ctx.fillRect(0, 0, W, H);
+  const x0 = cam.x - W / 2 / s, y0 = cam.y - H / 2 / s, x1 = x0 + W / s, y1 = y0 + H / s;
+  if (showGrid && s >= 6) {
+    const lines = (major) => {
+      ctx.beginPath();
+      for (let gx = Math.floor(x0); gx <= x1; gx++) {
+        if ((gx % 10 === 0) !== major) continue;
+        const sx = Math.round((gx - x0) * s) + 0.5; ctx.moveTo(sx, 0); ctx.lineTo(sx, H);
+      }
+      for (let gy = Math.floor(y0); gy <= y1; gy++) {
+        if ((gy % 10 === 0) !== major) continue;
+        const sy = Math.round((gy - y0) * s) + 0.5; ctx.moveTo(0, sy); ctx.lineTo(W, sy);
+      }
+      ctx.stroke();
+    };
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = colors.grid; lines(false);
+    ctx.strokeStyle = colors["grid-major"]; lines(true);
+  }
+  ctx.fillStyle = colors.cell;
+  const inset = showGrid && s >= 6 ? 1 : 0, size = Math.max(s - inset, 1);
+  for (const k of life.cells) {
+    const x = kx(k), y = ky(k);
+    if (x < x0 - 1 || x > x1 || y < y0 - 1 || y > y1) continue;
+    ctx.fillRect(Math.round((x - x0) * s) + inset, Math.round((y - y0) * s) + inset, size, size);
+  }
+  $("gen").textContent = life.gen.toLocaleString("en");
+  $("pop").textContent = life.cells.size.toLocaleString("en");
+  $("zoom").textContent = (s >= 1 ? Math.round(s) : s.toFixed(1)) + " px";
+}
+
+function frame(t) {
+  const dt = Math.min((t - lastT) / 1000, 0.25);
+  lastT = t;
+  if (running) {
+    acc += dt * gps;
+    let n = Math.min(Math.floor(acc), 30);
+    acc -= Math.floor(acc);
+    while (n-- > 0) life.step();
+    dirty = true;
+  }
+  if (dirty) { draw(); dirty = false; }
+  requestAnimationFrame(frame);
+}
+
+function setRunning(on) {
+  running = on;
+  acc = 0;
+  $("play").firstChild.textContent = on ? "Pause " : "Play ";
+}
+
+function setTool(t) {
+  tool = t;
+  $("toolPan").setAttribute("aria-pressed", t === "pan");
+  $("toolDraw").setAttribute("aria-pressed", t === "draw");
+  canvas.classList.toggle("draw", t === "draw");
+}
+
+function loadCells(cells) {
+  const b = cells.reduce((a, [x, y]) => ({ x1: Math.max(a.x1, x), y1: Math.max(a.y1, y) }), { x1: 0, y1: 0 });
+  life.load(cells, -Math.floor(b.x1 / 2), -Math.floor(b.y1 / 2));
+  fit();
+}
+
+function selectPreset(p, btn) {
+  current = p;
+  loadCells(presetCells(p));
+  document.querySelectorAll(".preset").forEach(el => el.setAttribute("aria-current", el === btn));
+}
+
+function renderList() {
+  const list = $("list");
+  list.textContent = "";
+  const cats = [];
+  for (const p of presets) if (!cats.includes(p.category || "Other")) cats.push(p.category || "Other");
+  for (const c of cats) {
+    const h = document.createElement("h3");
+    h.className = "cat"; h.textContent = c;
+    list.append(h);
+    for (const p of presets.filter(p => (p.category || "Other") === c)) {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "preset";
+      b.innerHTML = `<span class="name"></span>${p.meta ? '<span class="meta"></span>' : ""}${p.description ? '<span class="desc"></span>' : ""}`;
+      b.querySelector(".name").textContent = p.name;
+      if (p.meta) b.querySelector(".meta").textContent = p.meta;
+      if (p.description) b.querySelector(".desc").textContent = p.description;
+      b.addEventListener("click", () => selectPreset(p, b));
+      p._btn = b;
+      list.append(b);
+    }
+  }
+}
+
+async function loadPresets() {
+  try {
+    const res = await fetch("presets.json", { cache: "no-cache" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    presets = Array.isArray(data) ? data : data.presets || [];
+    renderList();
+    const first = presets.find(p => p.featured) || presets[0];
+    if (first) { selectPreset(first, first._btn); setRunning(true); }
+  } catch (e) {
+    $("list").innerHTML = '<p class="error"></p>';
+    $("list").firstChild.textContent = `Couldn't load presets.json (${e.message}). Serve the folder over HTTP instead of opening the file directly.`;
+    loadCells(parseRLE("bob$2bo$3o!"));
+  }
+}
+
+const pointers = new Map();
+let drag = null, pinch = null;
+
+function paintLine(a, b, on) {
+  let [x, y] = a; const [x2, y2] = b;
+  const dx = Math.abs(x2 - x), dy = -Math.abs(y2 - y), sx = x < x2 ? 1 : -1, sy = y < y2 ? 1 : -1;
+  let err = dx + dy;
+  for (;;) {
+    life.set(x, y, on);
+    if (x === x2 && y === y2) break;
+    const e2 = 2 * err;
+    if (e2 >= dy) { err += dy; x += sx; }
+    if (e2 <= dx) { err += dx; y += sy; }
+  }
+}
+
+canvas.addEventListener("pointerdown", e => {
+  canvas.setPointerCapture(e.pointerId);
+  pointers.set(e.pointerId, { x: e.offsetX, y: e.offsetY });
+  if (pointers.size === 2) {
+    const [a, b] = [...pointers.values()];
+    pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 };
+    drag = null;
+    return;
+  }
+  const mode = tool === "draw" && e.button === 0 ? "draw" : "pan";
+  drag = { x: e.offsetX, y: e.offsetY, sx: e.offsetX, sy: e.offsetY, moved: false, mode };
+  if (mode === "draw") {
+    const c = cellAt(e.offsetX, e.offsetY);
+    drag.value = !life.has(...c);
+    drag.cell = c;
+    life.set(c[0], c[1], drag.value);
+    dirty = true;
+  }
+});
+
+canvas.addEventListener("pointermove", e => {
+  if (!pointers.has(e.pointerId)) return;
+  pointers.set(e.pointerId, { x: e.offsetX, y: e.offsetY });
+  if (pinch && pointers.size === 2) {
+    const [a, b] = [...pointers.values()];
+    const d = Math.hypot(a.x - b.x, a.y - b.y), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+    cam.x -= (mx - pinch.mx) / cam.scale;
+    cam.y -= (my - pinch.my) / cam.scale;
+    zoomAt(mx, my, d / pinch.d);
+    pinch = { d, mx, my };
+    return;
+  }
+  if (!drag) return;
+  if (drag.mode === "pan") {
+    if (Math.hypot(e.offsetX - drag.sx, e.offsetY - drag.sy) > 4) { drag.moved = true; canvas.classList.add("dragging"); }
+    if (drag.moved) {
+      cam.x -= (e.offsetX - drag.x) / cam.scale;
+      cam.y -= (e.offsetY - drag.y) / cam.scale;
+      dirty = true;
+    }
+  } else {
+    const c = cellAt(e.offsetX, e.offsetY);
+    if (c[0] !== drag.cell[0] || c[1] !== drag.cell[1]) { paintLine(drag.cell, c, drag.value); drag.cell = c; dirty = true; }
+  }
+  drag.x = e.offsetX; drag.y = e.offsetY;
+});
+
+function endPointer(e) {
+  pointers.delete(e.pointerId);
+  canvas.classList.remove("dragging");
+  if (pinch) { if (pointers.size < 2) pinch = null; drag = null; return; }
+  if (drag && drag.mode === "pan" && !drag.moved && e.type === "pointerup" && e.button === 0) {
+    const [x, y] = cellAt(e.offsetX, e.offsetY);
+    life.toggle(x, y);
+    dirty = true;
+  }
+  drag = null;
+}
+canvas.addEventListener("pointerup", endPointer);
+canvas.addEventListener("pointercancel", endPointer);
+canvas.addEventListener("contextmenu", e => e.preventDefault());
+canvas.addEventListener("wheel", e => {
+  e.preventDefault();
+  zoomAt(e.offsetX, e.offsetY, Math.exp(-e.deltaY * (e.deltaMode === 1 ? 0.05 : 0.0015)));
+}, { passive: false });
+
+function randomFill() {
+  const w = Math.min(Math.ceil(W / cam.scale), 200), h = Math.min(Math.ceil(H / cam.scale), 130);
+  const cells = [];
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (Math.random() < 0.28) cells.push([x, y]);
+  life.load(cells, Math.floor(cam.x - w / 2), Math.floor(cam.y - h / 2));
+  current = null;
+  document.querySelectorAll(".preset").forEach(el => el.setAttribute("aria-current", false));
+  dirty = true;
+}
+
+$("play").addEventListener("click", () => setRunning(!running));
+$("step").addEventListener("click", () => { setRunning(false); life.step(); dirty = true; });
+$("speed").addEventListener("input", e => { gps = +e.target.value; $("speedOut").textContent = `${gps} gen/s`; });
+$("toolPan").addEventListener("click", () => setTool("pan"));
+$("toolDraw").addEventListener("click", () => setTool("draw"));
+$("fit").addEventListener("click", fit);
+$("grid").addEventListener("click", () => { showGrid = !showGrid; $("grid").setAttribute("aria-pressed", showGrid); dirty = true; });
+$("random").addEventListener("click", randomFill);
+$("clear").addEventListener("click", () => { setRunning(false); life.clear(); current = null; dirty = true; });
+
+function openRLE(mode) {
+  $("rlePanel").hidden = false;
+  $("rleMsg").textContent = "";
+  $("rleMsg").classList.remove("err");
+  if (mode === "export") {
+    $("rleLabel").textContent = "Current field as RLE";
+    $("rleText").value = toRLE(life.list(), current ? current.name : "Exported");
+    $("rleMsg").textContent = "Paste the last line into a preset's \"rle\" field.";
+  } else {
+    $("rleLabel").textContent = "Paste RLE";
+    $("rleText").value = "";
+    $("rleText").focus();
+  }
+}
+$("openImport").addEventListener("click", () => openRLE("import"));
+$("openExport").addEventListener("click", () => openRLE("export"));
+$("rleClose").addEventListener("click", () => { $("rlePanel").hidden = true; });
+$("rleLoad").addEventListener("click", () => {
+  const cells = parseRLE($("rleText").value);
+  if (!cells.length) {
+    $("rleMsg").textContent = "No live cells found. RLE uses b for dead, o for alive, $ for a new row and ! to end.";
+    $("rleMsg").classList.add("err");
+    return;
+  }
+  current = { name: "Pasted pattern" };
+  document.querySelectorAll(".preset").forEach(el => el.setAttribute("aria-current", false));
+  loadCells(cells);
+  $("rleMsg").classList.remove("err");
+  $("rleMsg").textContent = `Loaded ${cells.length} cells.`;
+});
+$("rleCopy").addEventListener("click", () => {
+  const t = $("rleText");
+  const done = () => { $("rleMsg").textContent = "Copied to clipboard."; };
+  const fallback = () => { t.focus(); t.select(); $("rleMsg").textContent = "Text selected. Press Ctrl+C to copy."; };
+  if (navigator.clipboard) navigator.clipboard.writeText(t.value).then(done, fallback); else fallback();
+});
+
+document.addEventListener("keydown", e => {
+  if (e.target.closest("textarea, input")) return;
+  const k = e.key.toLowerCase();
+  if (k === " ") { e.preventDefault(); setRunning(!running); }
+  else if (k === "n" || k === "arrowright") { setRunning(false); life.step(); dirty = true; }
+  else if (k === "f") fit();
+  else if (k === "g") $("grid").click();
+  else if (k === "d") setTool(tool === "draw" ? "pan" : "draw");
+});
+
+resize();
+loadPresets();
+requestAnimationFrame(t => { lastT = t; frame(t); });
+</script>
